@@ -69,7 +69,7 @@ model.add(Dropout(0.2))
 
 model.add(Dense(7, activation='softmax'))   # 7 pentru ca avem 7 categorii
 
-model.compile(optimizer='adam', loss='catecorigal_crossentropy', metrics=['accuracy'])
+model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 print(model.summary())
 
 
@@ -87,11 +87,9 @@ num_test_imgs = 0
 for root, dirs, files in os.walk(test_path):
     num_test_imgs += len(files)    
 
-print('train images: ' + num_train_imgs)
-print('test images: ' + num_test_imgs)
-
 # aici se face trainul efectiv
 epochs = 30
+### cu 100 de epoci are o acurateti muuult mai buna
 
 history = model.fit(train_generator,
                     steps_per_epoch = num_train_imgs//32,
