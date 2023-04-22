@@ -2,13 +2,20 @@ import cv2
 import numpy as np
 from tensorflow.keras.models import load_model
 
-model = load_model('model_file_30epochs.h5')
+model = load_model('model_file.h5')
 
 faceDetect = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 
 label_dict = {0: 'Angry', 1:'Disgust', 2:'Fear', 3:'Happy', 4:'Neutral', 5:'Sad', 6:'Surprise'}
 
-frame = cv2.imread("faces-small.jpg")
+#frame = cv2.imread("faces-small.jpg")
+#frame = cv2.imread("sad-face.jpeg")
+#frame = cv2.imread("happyFamily.jpg")
+#frame = cv2.imread("disgusted.jpg")
+frame = cv2.imread("angry.jpeg")
+
+
+
 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 faces = faceDetect.detectMultiScale(gray, 1.3, 3)
 for x, y, w, h in faces:
