@@ -88,7 +88,7 @@ for root, dirs, files in os.walk(test_path):
     num_test_imgs += len(files)    
 
 # aici se face trainul efectiv
-epochs = 2
+epochs = 30
 ### cu 100 de epoci are o acurateti muuult mai buna
 
 history = model.fit(train_generator,
@@ -97,7 +97,7 @@ history = model.fit(train_generator,
                     validation_data = validation_generator,
                     validation_steps = num_test_imgs//32)
 
-model.save('model_file.h5')
+model.save('model_file_30epochs.h5')
 
 
 
