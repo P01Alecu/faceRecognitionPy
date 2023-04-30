@@ -1,9 +1,20 @@
+import tensorflow as tf
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, Flatten
 from tensorflow.keras.layers import Conv2D, MaxPooling2D
 import os
 
+
+
+from tensorflow.compat.v1 import ConfigProto
+from tensorflow.compat.v1 import InteractiveSession
+config = ConfigProto()
+config.gpu_options.allow_growth = True
+session = InteractiveSession(config=config)
+
+physical_devices = tf.config.list_physical_devices('GPU')
+tf.config.set_visible_devices(physical_devices[0], 'GPU')
 
 train_data_dir = 'data/train/'
 validation_data_dir = 'data/test/'
@@ -88,7 +99,7 @@ for root, dirs, files in os.walk(test_path):
     num_test_imgs += len(files)    
 
 # aici se face trainul efectiv
-epochs = 30
+epochs = 100
 ### cu 100 de epoci are o acurateti muuult mai buna
 
 history = model.fit(train_generator,
@@ -97,7 +108,7 @@ history = model.fit(train_generator,
                     validation_data = validation_generator,
                     validation_steps = num_test_imgs//32)
 
-model.save('model_file_30epochs.h5')
+model.save('model_file_100epochs.h5')
 
 
 
