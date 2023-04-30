@@ -2,26 +2,29 @@ import cv2
 import numpy as np
 from tensorflow.keras.models import load_model
 
-model = load_model('model_file.h5')
 
-#test the accuracy with the test set
 import tensorflow as tf
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout, Flatten
-from tensorflow.keras.layers import Conv2D, MaxPooling2D
 import os
 from tensorflow.compat.v1 import ConfigProto
 from tensorflow.compat.v1 import InteractiveSession
-#config = ConfigProto()
-#config.gpu_options.allow_growth = True
-#session = InteractiveSession(config=config)
+config = ConfigProto()
+config.gpu_options.allow_growth = True
+session = InteractiveSession(config=config)
 
-#physical_devices = tf.config.list_physical_devices('GPU')
-#print(physical_devices)
-#tf.config.set_visible_devices(physical_devices[0], 'GPU')
+physical_devices = tf.config.list_physical_devices('GPU')
+print(physical_devices)
+tf.config.set_visible_devices(physical_devices[0], 'GPU')
 
+
+# Load the model
+model = load_model('model_early.h5')
+#model = load_model('model_file_30epochs.h5') # this is the worst yet
+#model = load_model('model_file_100epochs.h5') # this has 62% accuracy
+
+#test the accuracy with the test set
 validation_data_dir = 'data/test/'
+#validation_data_dir = 'dataNDisgust/test/'
 validation_datagen = ImageDataGenerator(rescale = 1./255)
 validation_generator = validation_datagen.flow_from_directory(
     validation_data_dir,
@@ -31,6 +34,8 @@ validation_generator = validation_datagen.flow_from_directory(
     class_mode='categorical',
     shuffle=True)
 model.evaluate(validation_generator)
+
+tf.keras.backend.clear_session()
 
 #test with 1 photo
 """

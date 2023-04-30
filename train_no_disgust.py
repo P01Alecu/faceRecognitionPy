@@ -18,8 +18,8 @@ session = InteractiveSession(config=config)
 physical_devices = tf.config.list_physical_devices('GPU')
 tf.config.set_visible_devices(physical_devices[0], 'GPU')
 
-train_data_dir = 'data/train/'
-validation_data_dir = 'data/test/'
+train_data_dir = 'dataNDisgust/train/'
+validation_data_dir = 'dataNDisgust/test/'
 
 IMG_HEIGHT = 48
 IMG_WIDTH = 48
@@ -53,7 +53,7 @@ validation_generator = validation_datagen.flow_from_directory(
     class_mode='categorical',
     shuffle=True)
 
-class_labels=['Angry', 'Disgust', 'Fear', 'Happy', 'Neutral', 'Sad', 'Surprise']
+class_labels=['Angry', 'Fear', 'Happy', 'Neutral', 'Sad', 'Surprise']
 
 img, label = train_generator.__next__()
 
@@ -80,7 +80,7 @@ model.add(Flatten())
 model.add(Dense(512, activation='relu'))
 model.add(Dropout(0.2))
 
-model.add(Dense(7, activation='softmax'))   # 7 pentru ca avem 7 categorii
+model.add(Dense(6, activation='softmax'))   # 7 pentru ca avem 7 categorii
 
 model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 print(model.summary())
@@ -89,8 +89,8 @@ print(model.summary())
 
 #### aici trainuim modelul (numaram inputuri)
 
-train_path = "data/train/"
-test_path = "data/test/"
+train_path = "dataNDisgust/train/"
+test_path = "dataNDisgust/test/"
 
 num_train_imgs = 0 
 for root, dirs, files in os.walk(train_path):
