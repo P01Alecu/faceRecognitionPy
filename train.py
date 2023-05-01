@@ -1,3 +1,6 @@
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' # hide tf warnings
+
 import tensorflow as tf
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.models import Sequential
@@ -5,18 +8,54 @@ from tensorflow.keras.layers import Dense, Dropout, Flatten
 from tensorflow.keras.layers import Conv2D, MaxPooling2D
 from keras.callbacks import ModelCheckpoint
 from keras.callbacks import EarlyStopping
-import os
+import matplotlib.pyplot as plt
 
 
 
 from tensorflow.compat.v1 import ConfigProto
 from tensorflow.compat.v1 import InteractiveSession
-config = ConfigProto()
-config.gpu_options.allow_growth = True
-session = InteractiveSession(config=config)
+def fix_gpu():
+    config = ConfigProto()
+    config.gpu_options.allow_growth = True
+    session = InteractiveSession(config=config)
+    
+    # ?
+    physical_devices = tf.config.list_physical_devices('GPU')
+    tf.config.set_visible_devices(physical_devices[0], 'GPU')
+fix_gpu()
 
-physical_devices = tf.config.list_physical_devices('GPU')
-tf.config.set_visible_devices(physical_devices[0], 'GPU')
+
+def plot_model_history(history):
+    fig, axs = plt.subplots(1, 2, figsize=(15, 5))
+    # summarize history for accuracy
+    axs[0].plot(range(1, len(history.history['accuracy']) + 1),
+                history.history['accuracy'])
+    axs[0].plot(range(1, len(history.history['val_accuracy']) + 1),
+                history.history['val_accuracy'])
+    axs[0].set_title('Model Accuracy')
+    axs[0].set_ylabel('Accuracy')
+    axs[0].set_xlabel('Epoch')
+    axs[0].legend(['train', 'val'], loc='best')
+    # summarize history for loss
+    axs[1].plot(range(1, len(history.history['loss']) + 1),
+                history.history['loss'])
+    axs[1].plot(range(1, len(history.history['val_loss']) + 1),
+                history.history['val_loss'])
+    axs[1].set_title('Model Loss')
+    axs[1].set_ylabel('Loss')
+    axs[1].set_xlabel('Epoch')
+    axs[1].legend(['train', 'val'], loc='best')
+    fig.savefig('train.png')
+    plt.show()
+
+
+
+
+
+# Set data directory to data folder relative to location of this notebook
+#here = Path(os.path.realpath(""))
+#base_dir = here.parent.parent
+#data_dir = base_dir / "data" / "extracted_labels_landmarks"
 
 train_data_dir = 'data/train/'
 validation_data_dir = 'data/test/'
@@ -105,7 +144,7 @@ epochs = 100
 
 # better use earlyStop > checkpoint
 #checkpoint = ModelCheckpoint("best_model.h5", monitor='val_accuracy', verbose=1, save_best_only=True, mode='max')
-early_stopping = EarlyStopping(monitor='val_accuracy', patience = 15, mode = 'max', verbose = 1)
+early_stopping = EarlyStopping(monitor='val_accuracy', patience = 3, mode = 'max', verbose = 1)
 
 history = model.fit(train_generator,
                     steps_per_epoch = num_train_imgs//32,
@@ -114,8 +153,9 @@ history = model.fit(train_generator,
                     validation_steps = num_test_imgs//32,
                     callbacks = [early_stopping])
 
-model.save('model_early.h5')
+model.save('model_test.h5')
 
+plot_model_history(history)
 
 # free the memory used by the model
 tf.keras.backend.clear_session()
