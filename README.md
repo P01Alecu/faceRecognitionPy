@@ -37,3 +37,12 @@ GUI - add webcam with recognition
     - button to record emotions  
 Plot for the trained models  
 Write 
+
+# affectNet_v1.h5 accuracy - 70.43
+# affectNet_v2 68.45
+
+There are some notes:
+
+In the beginning, we always strive in neural networks to make the inputs of the neural network close to each other, and therefore in your code, the pixel values of the images included in the dataset that you pass to the neural network range between 0 and 255 and thus this makes the learning process difficult for the network Therefore, the pixel values of the images included in the dataset must be made between 0 and 1. This is done by dividing the pixel values of the images by 255.
+
+Another note, the images included in the dataset are colored, but in the proposed system, we do not need the color details, and keeping the color gradient of the RGB images will lead to difficulty in the training process of the neural network, and therefore to help the neural network in learning, the color gradient of the images must be converted to grayscale This makes it easier for the neural network to train and focus on the basic features.
