@@ -125,8 +125,8 @@ class EmotionClassifier:
         plt.show()
 
 
-train_data_dir = 'data/train/'
-validation_data_dir = 'data/test/'
+train_data_dir = 'data/fer/train/'
+validation_data_dir = 'data/fer/test/'
 
 classifier = EmotionClassifier(train_data_dir, validation_data_dir)
 classifier.train(10)
