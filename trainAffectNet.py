@@ -14,13 +14,16 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.compat.v1 import ConfigProto
 from tensorflow.compat.v1 import InteractiveSession
 import tensorflow as tf
+import tensorflow_hub as hub
+from tensorflow.keras.layers import Resizing
 
 class AffectNetModel:
-    def __init__(self):
+    def __init__(self, variant = 0):
         self.INPUT_PATH = "data/affectNet/"
         self.data_dir = self.INPUT_PATH
         self.IMAGE_SIZE = (96, 96)
         self.model = None
+        self.variant = variant
         self.fix_gpu()
 
     def fix_gpu(self):
@@ -39,13 +42,16 @@ class AffectNetModel:
             category_path = os.path.join(self.data_dir, label_map[label])  # Updated line
             for img_name in os.listdir(category_path):
                 img_path = os.path.join(category_path, img_name)
-                img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+                if(self.variant < 2):
+                    img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+                else:
+                    img = cv2.imread(img_path)
                 img = cv2.resize(img, self.IMAGE_SIZE)
                 images.append(img)
                 labels.append(label)
 
         images = np.array(images, dtype="float32") / 255.0
-        images = images.reshape(images.shape[0], *self.IMAGE_SIZE, 1)  # Add color dimension (1 for grayscale images)
+        images = images.reshape(images.shape[0], *self.IMAGE_SIZE, 3 if self.variant == 2 else 1)  # Add color dimension (1 for grayscale images)
         labels = np.array(labels, dtype="int32")
         labels = to_categorical(labels, num_classes=len(label_map))
         return images, labels
@@ -67,29 +73,27 @@ class AffectNetModel:
     def create_model_v1(self, input_shape):
         model = Sequential()
 
-        model.add(Conv2D(32, (3,3), activation="relu", input_shape=input_shape))
-        model.add(BatchNormalization())
-        model.add(MaxPool2D(pool_size=(2,2)))
-        model.add(Dropout(0.25))
+        model.add(Conv2D(32, kernel_size=(3, 3), activation='relu', input_shape=(self.IMG_HEIGHT, self.IMG_WIDTH, 1)))
+        model.add(Conv2D(64, kernel_size=(3, 3), activation='relu'))
+        model.add(MaxPool2D(pool_size=(2, 2)))
+        model.add(Dropout(0.1))
 
-        model.add(Conv2D(64, (3,3), activation="relu"))
-        model.add(BatchNormalization())
-        model.add(MaxPool2D(pool_size=(2,2)))
-        model.add(Dropout(0.25))
+        model.add(Conv2D(128, kernel_size=(3, 3), activation='relu'))
+        model.add(MaxPool2D(pool_size=(2, 2)))
+        model.add(Dropout(0.1))
 
-        model.add(Conv2D(128, (3,3), activation="relu"))
-        model.add(BatchNormalization())
-        model.add(MaxPool2D(pool_size=(2,2)))
-        model.add(Dropout(0.25))
+        model.add(Conv2D(256, kernel_size=(3, 3), activation='relu'))
+        model.add(MaxPool2D(pool_size=(2, 2)))
+        model.add(Dropout(0.1))
 
         model.add(Flatten())
-        model.add(Dense(256, activation='relu', kernel_regularizer=l2(0.01)))
-        model.add(BatchNormalization())
-        model.add(Dropout(0.5))
-        model.add(Dense(8, activation='softmax'))
+        model.add(Dense(512, activation='relu'))
+        model.add(Dropout(0.2))
 
-        model.compile(optimizer = Adam(learning_rate=0.001), loss='categorical_crossentropy', metrics=['accuracy'])
+        model.add(Dense(7, activation='softmax'))
 
+        model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+        print(model.summary())
         model.summary()
         return model
     
@@ -132,14 +136,34 @@ class AffectNetModel:
         model.summary()
         return model
 
-    def train(self, variant = 0):
-        X_train, X_val, y_train, y_val = self.prepare_data()
-        input_shape = (*self.IMAGE_SIZE, 1)
+    def create_model_v3(self, input_shape):
+        """
+            ResNet model
+        """
+        # Download the pretrained model and save it as keras layer
+        url = "https://tfhub.dev/google/imagenet/resnet_v2_50/feature_vector/5"
+        feature_extractor_layer = hub.KerasLayer(url,
+                                                trainable=False,
+                                                name="feature_extraction_layer",
+                                                input_shape=(self.IMAGE_SIZE[0], self.IMAGE_SIZE[1], 3))
 
-        if(variant == 1):
-            self.model = self.create_model_v1(input_shape)
-        else:
+        model = tf.keras.Sequential()
+        model.add(Resizing(96, 96))
+        model.add(feature_extractor_layer)
+        model.add(Dense(8, activation="softmax", name="output_layer"))
+        model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+        return model
+
+    def train(self):
+        X_train, X_val, y_train, y_val = self.prepare_data()
+        input_shape = (*self.IMAGE_SIZE, 3 if self.variant == 2 else 1)
+
+        if(self.variant == 1):
             self.model = self.create_model_v2(input_shape)
+        elif(self.variant == 2):
+            self.model = self.create_model_v3(input_shape)
+        else:
+            self.model = self.create_model_v1(input_shape)
 
         history = self.model.fit(X_train, y_train,
                                     epochs=25,
@@ -155,11 +179,13 @@ class AffectNetModel:
 
         self.plot_history(history)
         
-        if(variant == 1):
+        if(self.variant == 1):
             self.model.save('affectNet_v2.h5')
+        elif(self.variant == 2):
+            self.model.save('affectNet_v3.h5')
         else:
             self.model.save('affectNet_v1.h5')
 
 if __name__ == "__main__":
-    affect_net_model = AffectNetModel()
-    affect_net_model.train(variant = 1)
+    affect_net_model = AffectNetModel(variant = 2)
+    affect_net_model.train()
