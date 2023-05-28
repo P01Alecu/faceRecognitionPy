@@ -3,11 +3,11 @@ import pandas as pd
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
-from keras.utils import to_categorical
-from keras.models import Sequential
-from keras.layers import Conv2D, Dropout, BatchNormalization, Flatten, Dense, MaxPool2D
-from keras.regularizers import l2
-from keras.optimizers import Adam
+from tensorflow.keras.utils import to_categorical
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv2D, Dropout, BatchNormalization, Flatten, Dense, MaxPool2D
+from tensorflow.keras.regularizers import l2
+from tensorflow.keras.optimizers import Adam
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
@@ -16,6 +16,7 @@ from tensorflow.compat.v1 import InteractiveSession
 import tensorflow as tf
 import tensorflow_hub as hub
 from tensorflow.keras.layers import Resizing
+from tensorflow.keras.applications import MobileNetV2
 
 class AffectNetModel:
     def __init__(self, variant = 0):
@@ -73,7 +74,7 @@ class AffectNetModel:
     def create_model_v1(self, input_shape):
         model = Sequential()
 
-        model.add(Conv2D(32, kernel_size=(3, 3), activation='relu', input_shape=(self.IMG_HEIGHT, self.IMG_WIDTH, 1)))
+        model.add(Conv2D(32, kernel_size=(3, 3), activation='relu', input_shape=input_shape))
         model.add(Conv2D(64, kernel_size=(3, 3), activation='relu'))
         model.add(MaxPool2D(pool_size=(2, 2)))
         model.add(Dropout(0.1))
@@ -90,7 +91,7 @@ class AffectNetModel:
         model.add(Dense(512, activation='relu'))
         model.add(Dropout(0.2))
 
-        model.add(Dense(7, activation='softmax'))
+        model.add(Dense(8, activation='softmax'))
 
         model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
         print(model.summary())
@@ -140,33 +141,40 @@ class AffectNetModel:
         """
             ResNet model
         """
-        # Download the pretrained model and save it as keras layer
-        url = "https://tfhub.dev/google/imagenet/resnet_v2_50/feature_vector/5"
-        feature_extractor_layer = hub.KerasLayer(url,
-                                                trainable=False,
-                                                name="feature_extraction_layer",
-                                                input_shape=(self.IMAGE_SIZE[0], self.IMAGE_SIZE[1], 3))
+        pretrained_model = tf.keras.applications.ResNet50(weights='imagenet', include_top=False, classes=8, pooling='avg', input_shape=input_shape)
+        pretrained_model.trainable = False
 
-        model = tf.keras.Sequential()
-        model.add(Resizing(96, 96))
-        model.add(feature_extractor_layer)
-        model.add(Dense(8, activation="softmax", name="output_layer"))
-        model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+        model = Sequential()
+        model.add(pretrained_model)
+        
+        model.add(Conv2D(32, (3,3), activation="relu"))
+        model.add(BatchNormalization())
+        model.add(MaxPool2D(pool_size=(2,2)))
+        model.add(Dropout(0.25))
+        
+        model.add(Flatten())
+        model.add(Dense(8, activation='softmax'))
+        optimizer = tf.keras.optimizers.Adam(learning_rate=0.00010609141674890813)
+        model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
+
         return model
 
     def train(self):
         X_train, X_val, y_train, y_val = self.prepare_data()
-        input_shape = (*self.IMAGE_SIZE, 3 if self.variant == 2 else 1)
+        input_shape = (*self.IMAGE_SIZE, 3 if self.variant >= 2 else 1)
 
         if(self.variant == 1):
             self.model = self.create_model_v2(input_shape)
         elif(self.variant == 2):
             self.model = self.create_model_v3(input_shape)
-        else:
+        #elif(self.variant == 3):
+        #    self.model = self.create_model_v4(input_shape) # scratch model
+        else: # else is mainly for variant == 0
             self.model = self.create_model_v1(input_shape)
 
         history = self.model.fit(X_train, y_train,
                                     epochs=25,
+                                    batch_size=32,
                                     validation_data=(X_val, y_val),
                                     callbacks=[EarlyStopping(patience=10, monitor='val_loss', mode='min'), 
                                             ReduceLROnPlateau(patience=2, verbose=1),
@@ -183,6 +191,8 @@ class AffectNetModel:
             self.model.save('affectNet_v2.h5')
         elif(self.variant == 2):
             self.model.save('affectNet_v3.h5')
+        #elif(self.variant == 3):
+        #    self.model.save('affectNet_v4.h5')
         else:
             self.model.save('affectNet_v1.h5')
 
