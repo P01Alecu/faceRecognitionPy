@@ -8,3 +8,4 @@ pandas
 sklearn
 tkinter_webcam
 scikit-learn
+nvidia-cudnn-cu11==8.6.0.163
