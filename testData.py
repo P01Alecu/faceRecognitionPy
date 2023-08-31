@@ -19,7 +19,8 @@ class ModelTester:
         self.target_size = target_size
         self.batch_size = batch_size
         self.validation_datagen = ImageDataGenerator(rescale=1./255)
-
+        self.color = 3
+        
         self.face_detect = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
         if(modelUsed == 1):
             # for CK+ dataset
@@ -57,13 +58,14 @@ class ModelTester:
         if not self.model:
             raise Exception("Modelul nu a fost incarcat.")
         frame = cv2.imread(image_path)
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        #gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         faces = self.face_detect.detectMultiScale(gray, 1.3, 3)
         for x, y, w, h in faces:
             sub_face_img = gray[y : y + h, x : x + w]
             resized = cv2.resize(sub_face_img, self.target_size)
             normalize = resized / 255.0
-            reshaped = np.reshape(normalize, (1, *self.target_size, 1))
+            reshaped = np.expand_dims(normalize, axis=0)
             result = self.model.predict(reshaped)
             print(result)
             label = np.argmax(result, axis=1)[0]
@@ -98,7 +100,8 @@ class ModelTester:
         while True:
             ret, frame = video.read()
             # se aplica filtru gray
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            #gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             # faces o sa contina coordonatele fiecarei fete din imaginea incarcata
             faces = self.face_detect.detectMultiScale(gray, 1.3, 3)
             # se ia fiecare fata in parte si se face predictia
@@ -106,7 +109,8 @@ class ModelTester:
                 sub_face_img = gray[y : y + h, x : x + w]
                 resized = cv2.resize(sub_face_img, self.target_size)
                 normalize = resized / 255.0
-                reshaped = np.reshape(normalize, (1, *self.target_size, 1))
+                reshaped = np.expand_dims(normalize, axis=0)
+                #reshaped = np.reshape(normalize, (1, *self.target_size, 1))
                 result = self.model.predict(reshaped)
                 label = np.argmax(result, axis = 1)[0]
 
@@ -123,9 +127,12 @@ class ModelTester:
         cv2.destroyAllWindows()
         tf.keras.backend.clear_session()
 
+tester = ModelTester('complete.h5', 'data/dataSplit/test/', (197,197), 32, 0)
 #tester = ModelTester('model_file_100epochs.h5', 'data/test/', (48,48), 32, 0)
-tester = ModelTester('affectNet_v1.h5', 'data/fer/test/', (96,96), 32, 2)
-tester.predict_image('data/happyFamily.jpg')
+#tester = ModelTester('test.h5', 'data/ckPlus/', (96,96), 32, 2)
+#tester = ModelTester('affectNet_v1.h5', 'data/fer/test/', (96,96), 32, 2)
+#tester.predict_image('data/angry.jpeg')
 #tester.evaluate()
-#tester.predict_image('data/sad-face.jpeg')
-#tester.predict_web()
+
+#tester.predict_image('data/ang.jpg')
+tester.predict_web()
