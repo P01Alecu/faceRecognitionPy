@@ -8,9 +8,11 @@ from keras.callbacks import EarlyStopping
 import matplotlib.pyplot as plt
 from tensorflow.compat.v1 import ConfigProto
 from tensorflow.compat.v1 import InteractiveSession
+from tensorflow.keras.layers import Resizing
+import tensorflow_hub as hub
 
 class EmotionClassifier:
-    def __init__(self, train_data_dir, validation_data_dir):
+    def __init__(self, train_data_dir, validation_data_dir, url=''):
         self.train_data_dir = train_data_dir
         self.validation_data_dir = validation_data_dir
         self.IMG_HEIGHT = 48
@@ -19,7 +21,11 @@ class EmotionClassifier:
         self.class_labels = ['Angry', 'Disgust', 'Fear', 'Happy', 'Neutral', 'Sad', 'Surprise']
         self.fix_gpu()
         self.train_generator, self.validation_generator = self.prepare_data()
-        self.model = self.build_model()
+        self.url = url
+        if(len(self.url) > 3):
+            self.model = self.build_model_from_url()
+        else:
+            self.model = self.build_model()
         
     def fix_gpu(self):
         config = ConfigProto()
@@ -84,6 +90,28 @@ class EmotionClassifier:
         
         return model
 
+    def build_model_from_url(self):
+            """
+            Takkes a TensorFlow Hub URL and creates a Keras Sequential model with it. 
+
+
+            """
+
+            # Download the pretrained model and save it as keras layer
+            feature_extractor_layer = hub.KerasLayer(self.url,
+                                                    trainable=False,
+                                                    name="feature_extraction_layer",
+                                                    input_shape=(self.IMG_HEIGHT, self.IMG_WIDTH, 3))
+
+            # Create our own model
+            model = tf.keras.Sequential()
+            model.add(Resizing(48, 48))
+            model.add(tf.keras.layers.Lambda(lambda x: tf.repeat(x, 3, axis=-1), input_shape=(48, 48, 1)))
+            model.add(feature_extractor_layer)
+            model.add(Dense(7, activation="softmax", name="output_layer"))
+            model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+            return model
+
     def train(self, epochs=100):
         num_train_imgs = sum([len(files) for r, d, files in os.walk(self.train_data_dir)])
         num_test_imgs = sum([len(files) for r, d, files in os.walk(self.validation_data_dir)])
@@ -92,11 +120,11 @@ class EmotionClassifier:
 
         history = self.model.fit(
             self.train_generator,
-            steps_per_epoch=num_train_imgs // self.batch_size,
+            #steps_per_epoch=num_train_imgs // self.batch_size,
             epochs=epochs,
-            validation_data=self.validation_generator,
-            validation_steps=num_test_imgs // self.batch_size,
-            callbacks=[early_stopping]
+            validation_data=self.validation_generator
+            #validation_steps=num_test_imgs // self.batch_size,
+            #callbacks=[early_stopping]
         )
 
         self.model.save('model_test.h5')
@@ -128,5 +156,6 @@ class EmotionClassifier:
 train_data_dir = 'data/fer/train/'
 validation_data_dir = 'data/fer/test/'
 
+#classifier = EmotionClassifier(train_data_dir, validation_data_dir, "https://tfhub.dev/google/imagenet/resnet_v2_50/feature_vector/5")
 classifier = EmotionClassifier(train_data_dir, validation_data_dir)
-classifier.train(10)
+classifier.train(100)

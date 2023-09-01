@@ -24,6 +24,5 @@ testWithWeb.py test the model with the webcam (webcam + haarcascade care se gase
 # affectNet_v1.h5 accuracy - 65
 # affectNet_v2 70.10
 
-# FER v1 - 60.87 100epochs
-# FER v2 - 54.34 56epochs trebuie re-rulat
-# FER v3 - 54.79 300epochs
+# FER_ResNet50 - 71.05
+# FER_goldBaseline - 60.76
