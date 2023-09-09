@@ -5,7 +5,7 @@ The project involves the use of different machine learning models:
 
 This repository contains the code for:
  * data exploration and processing of the emotions dataset FER2013 (from Kaggle); 
- * training, fine-tuning and onnx conversion for emotion model;
+ * training, fine-tuning;
  * face detection with OpenCV Face Cascade Classifier;
  * real-time video inference on webcam.
 
@@ -15,14 +15,12 @@ Or if you are using conda I suggest you to create a new virtual environment thro
 It's important as you need to use specific versions of the libraries used, for compatibility reasons.
 
 ## Dependencies
-Once the venv has been created, install the dependencies with `pip3 install -r requirements.txt` in a venv enabled shell.
+Once the venv has been created, install the dependencies with `pip3 install -r requirements.txt` in a venv enabled shell. <br>
+
+In order to use the application, you should have the model named 'FER.h5' in the same directory with the .exe. <br>
+You can download them from https://drive.google.com/drive/folders/1v4DG-_fu1R4weJ1A0MZQhQZcBT6TTxsQ?usp=sharing
 
 ## Quick info
-testData.py test the accuracy of the trained model (dataset + haarcascade care se gaseste in opencv/data/haarcascades) 
-testWithWeb.py test the model with the webcam (webcam + haarcascade care se gaseste in opencv/data/haarcascades)
-
-# affectNet_v1.h5 accuracy - 65
-# affectNet_v2 70.10
-
-# FER_ResNet50 - 71.05
-# FER_goldBaseline - 60.76
+train.ipynb  contains the code used for training the models
+testData.py test the accuracy of the trained model using the webcam
+getFilesForTest.py contains helper functions

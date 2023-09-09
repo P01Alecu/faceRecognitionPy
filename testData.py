@@ -39,7 +39,7 @@ class ModelTester:
         for image_wLabel in list_imagesWlabel:
             images.append(image_wLabel[0])
             tempPred = self.predict_image(image_wLabel[1] + '/' + image_wLabel[0], 1)
-            if len(tempPred) == 0:
+            if len(tempPred) == 0:      # daca nu detecteaza o fata in imagine trece peste
                 del images[-1]
                 continue
             predictions.append(tempPred[0])
@@ -58,11 +58,15 @@ class ModelTester:
 
         # Creați o vizualizare grafică a matricei de confuzie normalizate
         plt.imshow(confusion_matrix_normalized, cmap='Blues')
-        plt.title('Matrice de confuzie normalizată')
+        plt.title('Matrice de confuzie')
         plt.xlabel('Predictii')
         plt.ylabel('Etichetă reală')
-        plt.xticks(np.arange(len(self.label_dict)), self.label_dict)
-        plt.yticks(np.arange(len(self.label_dict)), self.label_dict)
+        
+        # change
+        class_labels = ['Angry', 'Disgust', 'Fear', 'Happy', 'Neutral', 'Sad', 'Surprise']
+
+        plt.xticks(np.arange(len(class_labels)), class_labels)
+        plt.yticks(np.arange(len(class_labels)), class_labels)
 
         # Adăugați proporțiile normalizate la matrice
         for i in range(confusion_matrix_normalized.shape[0]):
@@ -102,39 +106,66 @@ class ModelTester:
 
     def predict_web(self):
         video = cv2.VideoCapture(0)
+        frame_count = 0
+        label = 0
         while True:
             ret, frame = video.read()
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            # faces o sa contina coordonatele fiecarei fete din imaginea incarcata
             faces = self.face_detect.detectMultiScale(gray, 1.3, 3)
-            # se ia fiecare fata in parte si se face predictia
-            for x, y, w, h in faces:
-                sub_face_img = gray[y : y + h, x : x + w]
-                resized = cv2.resize(sub_face_img, self.target_size)
-                normalize = resized / 255.0
-                reshaped = np.expand_dims(normalize, axis=0)
-                #reshaped = np.reshape(normalize, (1, *self.target_size, 1))
-                result = self.model.predict(reshaped)
-                label = np.argmax(result, axis = 1)[0]
+            
+            if frame_count % 10 == 0:  # Faceți predicția la fiecare 10 cadre
+                for x, y, w, h in faces:
+                    sub_face_img = gray[y : y + h, x : x + w]
+                    resized = cv2.resize(sub_face_img, self.target_size)
+                    normalize = resized / 255.0
+                    reshaped = np.expand_dims(normalize, axis=0)
+                    result = self.model.predict(reshaped)
+                    label = np.argmax(result, axis=1)[0]
 
-                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 1)
-                cv2.rectangle(frame, (x, y), (x + w, y + h), (50, 50, 255), 2)
-                cv2.rectangle(frame, (x, y - 40), (x + w, y), (50, 50, 255), -1)
-                cv2.putText(frame, self.label_dict[label], (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255))
-
-            cv2.imshow("Frame", frame)
+                    cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 1)
+                    cv2.rectangle(frame, (x, y), (x + w, y + h), (50, 50, 255), 2)
+                    cv2.rectangle(frame, (x, y - 40), (x + w, y), (50, 50, 255), -1)
+                    cv2.putText(frame, self.label_dict[label], (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255))
+            else:
+                for x, y, w, h in faces:
+                    sub_face_img = gray[y : y + h, x : x + w]
+                    resized = cv2.resize(sub_face_img, self.target_size)
+                    normalize = resized / 255.0
+                    reshaped = np.expand_dims(normalize, axis=0)
+                    cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 1)
+                    cv2.rectangle(frame, (x, y), (x + w, y + h), (50, 50, 255), 2)
+                    cv2.rectangle(frame, (x, y - 40), (x + w, y), (50, 50, 255), -1)
+                    cv2.putText(frame, self.label_dict[label], (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255))
+            cv2.imshow("Camera", frame)
             k = cv2.waitKey(1)
             if k == ord('q'):
                 break
+            
+            frame_count += 1
+        
         video.release()
         cv2.destroyAllWindows()
         tf.keras.backend.clear_session()
 
+
     
 
-tester = ModelTester('complete.h5', (197,197))
+tester = ModelTester('FER.h5', (197,197)) #loss: 0.4440 - accuracy: 0.8336 - val_loss: 0.7879 - val_accuracy: 0.7267 - lr: 0.0050
+
+#SGD fara dropout si nesterov
+#loss: 0.0403 - accuracy: 0.9863 - val_loss: 1.3894 - val_accuracy: 0.7052 - lr: 0.0050
+
+#SGD fara nesterov
+#loss: 0.0403 - accuracy: 0.9863 - val_loss: 1.3894 - val_accuracy: 0.7239 - lr: 0.0050
+#20/65
+
+#Adam
+#loss: 0.2138 - accuracy: 0.9240 - val_loss: 0.8943 - val_accuracy: 0.7353 - lr: 2.5000e-04
+
+#labels = tester.predict_image('data/app/Sad/s1.jpg')
 #labels = tester.predict_image('data/happyFamily.jpg')
-tester.evaluate_personal_data('data/app/')
+#tester.evaluate_personal_data('data/app/')
+#tester.evaluate_personal_data('data/dataSplit/')
 
 
-#tester.predict_web()
+tester.predict_web()
