@@ -39,7 +39,7 @@ class ModelTester:
         for image_wLabel in list_imagesWlabel:
             images.append(image_wLabel[0])
             tempPred = self.predict_image(image_wLabel[1] + '/' + image_wLabel[0], 1)
-            if len(tempPred) == 0:      # daca nu detecteaza o fata in imagine trece peste
+            if len(tempPred) == 0:      # if it doesn't find a face in the image, skips
                 del images[-1]
                 continue
             predictions.append(tempPred[0])
@@ -50,13 +50,13 @@ class ModelTester:
                         labels[-1] = cheie
                         break
 
-        # Calculați matricea de confuzie
+        # Get the confusion matrix
         confusion_mat = confusion_matrix(labels, predictions)
 
-        # Normalizați matricea de confuzie
+        # Normalize the confusion matrix
         confusion_matrix_normalized = confusion_mat.astype('float') / confusion_mat.sum(axis=1, keepdims=True)
 
-        # Creați o vizualizare grafică a matricei de confuzie normalizate
+        # Create a graphic view with the confusion matrix
         plt.imshow(confusion_matrix_normalized, cmap='Blues')
         plt.title('Matrice de confuzie')
         plt.xlabel('Predictii')
@@ -147,25 +147,6 @@ class ModelTester:
         cv2.destroyAllWindows()
         tf.keras.backend.clear_session()
 
-
-    
-
-tester = ModelTester('FER.h5', (197,197)) #loss: 0.4440 - accuracy: 0.8336 - val_loss: 0.7879 - val_accuracy: 0.7267 - lr: 0.0050
-
-#SGD fara dropout si nesterov
-#loss: 0.0403 - accuracy: 0.9863 - val_loss: 1.3894 - val_accuracy: 0.7052 - lr: 0.0050
-
-#SGD fara nesterov
-#loss: 0.0403 - accuracy: 0.9863 - val_loss: 1.3894 - val_accuracy: 0.7239 - lr: 0.0050
-#20/65
-
-#Adam
-#loss: 0.2138 - accuracy: 0.9240 - val_loss: 0.8943 - val_accuracy: 0.7353 - lr: 2.5000e-04
-
-#labels = tester.predict_image('data/app/Sad/s1.jpg')
-#labels = tester.predict_image('data/happyFamily.jpg')
-#tester.evaluate_personal_data('data/app/')
-#tester.evaluate_personal_data('data/dataSplit/')
-
+tester = ModelTester('FER.h5', (197,197)) 
 
 tester.predict_web()
